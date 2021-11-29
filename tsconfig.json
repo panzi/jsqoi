@@ -1,0 +1,21 @@
+{
+    "compilerOptions": {
+      "target": "es2015",
+      "lib": ["es2015", "dom"],
+      "typeRoots": ["node_modules/@types"],
+      "allowSyntheticDefaultImports": true,
+      "experimentalDecorators": true,
+      "emitDecoratorMetadata": true,
+      "forceConsistentCasingInFileNames": true,
+      "moduleResolution": "node",
+      "pretty": true,
+      "sourceMap": true,
+      "outDir": "./build",
+      "allowJs": true,
+      "noEmit": false,
+      "esModuleInterop": true,
+      "strictNullChecks": true
+    },
+    "include": ["./src/*.ts"],
+    "exclude": ["node_modules"]
+}
