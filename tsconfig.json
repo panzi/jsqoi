@@ -10,12 +10,12 @@
       "moduleResolution": "node",
       "pretty": true,
       "sourceMap": true,
-      "outDir": "./build",
+      "outDir": "./dist",
       "allowJs": true,
       "noEmit": false,
       "esModuleInterop": true,
       "strictNullChecks": true
     },
-    "include": ["./src/*.ts"],
-    "exclude": ["node_modules"]
+    "include": ["./**/*.ts", "index.ts"],
+    "exclude": ["node_modules", "tmp", "dist"]
 }
