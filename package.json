@@ -15,5 +15,10 @@
         "@typescript-eslint/parser": "^5.4.0",
         "eslint": "^8.3.0",
         "typescript": "^4.5.2"
+    },
+    "dependencies": {
+        "@rgba-image/create-image": "^0.2.0",
+        "@rgba-image/png": "^0.1.1",
+        "@types/node": "^16.11.11"
     }
 }

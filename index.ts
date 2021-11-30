@@ -303,3 +303,207 @@ export function encodeQOI(file: QOIFile): Uint8Array {
     return bytes.slice(0, p);
 }
 
+export interface DebugHeader {
+    type: 'HEADER';
+    width: number;
+    height: number;
+    colorSpace: number;
+    channels: number;
+}
+
+export interface DebugIndex {
+    type: 'INDEX';
+    pos: number;
+}
+
+export interface DebugRun {
+    type: 'RUN_8' | 'RUN_16';
+    run: number;
+}
+
+export interface DebugDiff {
+    type: 'DIFF_8' | 'DIFF_16';
+    r: number;
+    g: number;
+    b: number;
+}
+
+export interface DebugDiff24 {
+    type: 'DIFF_24';
+    r: number;
+    g: number;
+    b: number;
+    a: number;
+}
+
+export interface DebugColor {
+    type: 'COLOR';
+    r?: number;
+    g?: number;
+    b?: number;
+    a?: number;
+}
+
+export type DebugItem = DebugHeader | DebugIndex | DebugRun | DebugDiff | DebugDiff24 | DebugColor;
+
+function writeDebug(item: DebugItem): void {
+    console.error(item);
+}
+
+export function debugQOI(input: ArrayBuffer, debug: (item: DebugItem) => void = writeDebug): void {
+    const bytes = new Uint8Array(input);
+
+    if (bytes.length < QOI_HEADER_SIZE + QOI_PADDING) {
+        throw new Error('file too short');
+    }
+
+    const magic = bytes[0] << 24 | bytes[1] << 16 | bytes[2] << 8 | bytes[3];
+
+    if (magic !== QOI_MAGIC) {
+        throw new Error(`illegal file magic: 0x${magic.toString(16)}`);
+    }
+
+    const width  = bytes[4] << 24 | bytes[5] << 16 | bytes[ 6] << 8 | bytes[ 7];
+    const height = bytes[8] << 24 | bytes[9] << 16 | bytes[10] << 8 | bytes[11];
+
+    const channels   = bytes[12];
+    const colorSpace = bytes[13];
+
+    if (width === 0) {
+        throw new Error(`illegal width: ${width}`);
+    }
+
+    if (height === 0) {
+        throw new Error(`illegal height: ${height}`);
+    }
+
+    if (channels !== 3 && channels !== 4) {
+        throw new Error(`illegal number of channels: ${channels}`);
+    }
+
+    if (0xf0 & colorSpace) {
+        throw new Error(`illegal color space: 0x${colorSpace.toString(16)}`);
+    }
+
+    const index = new Uint8Array(QOI_DECODE_INDEX_INIT);
+    if (channels === 3) {
+        for (let indexPos = 3; indexPos < index.length; indexPos += 4) {
+            index[indexPos] = 255;
+        }
+    }
+
+    writeDebug({
+        type: 'HEADER',
+        width,
+        height,
+        colorSpace,
+        channels
+    });
+
+    let run = 0|0;
+    let r   = 255|0;
+    let g   = 255|0;
+    let b   = 255|0;
+    let a   = 255|0;
+    let chunksLen = bytes.length - QOI_PADDING;
+    let p = QOI_HEADER_SIZE;
+    const pxLen = width * height;
+    // ImageData is always RGBA -> hardcoded 4
+    for (let pxPos = 0; pxPos < pxLen; pxPos += 4) {
+        if (run > 0) {
+            run --;
+        }
+        else if (p < chunksLen) {
+            const b1 = bytes[p++];
+
+            if ((b1 & QOI_MASK_2) === QOI_INDEX) {
+                const indexPos = (b1 ^ QOI_INDEX) * 4;
+                writeDebug({
+                    type: 'INDEX',
+                    pos: indexPos,
+                });
+                r = index[indexPos];
+                g = index[indexPos + 1];
+                b = index[indexPos + 2];
+                a = index[indexPos + 3];
+            }
+            else if ((b1 & QOI_MASK_3) === QOI_RUN_8) {
+                run = (b1 & 0x1f);
+                writeDebug({
+                    type: 'RUN_8',
+                    run,
+                });
+            }
+            else if ((b1 & QOI_MASK_3) === QOI_RUN_16) {
+                const b2 = bytes[p++];
+                run = (((b1 & 0x1f) << 8) | (b2)) + 32;
+                writeDebug({
+                    type: 'RUN_8',
+                    run,
+                });
+            }
+            else if ((b1 & QOI_MASK_2) === QOI_DIFF_8) {
+                const dr = ((b1 >> 4) & 0x03) - 2;
+                const dg = ((b1 >> 2) & 0x03) - 2;
+                const db = ( b1       & 0x03) - 2;
+                writeDebug({
+                    type: 'DIFF_8',
+                    r: dr,
+                    g: dg,
+                    b: db,
+                });
+                r += dr;
+                g += dg;
+                b += db;
+            }
+            else if ((b1 & QOI_MASK_3) === QOI_DIFF_16) {
+                const b2 = bytes[p++];
+                const dr = (b1 & 0x1f) - 16;
+                const dg = (b2 >> 4)   -  8;
+                const db = (b2 & 0x0f) -  8;
+                writeDebug({
+                    type: 'DIFF_16',
+                    r: dr,
+                    g: dg,
+                    b: db,
+                });
+                r += dr;
+                g += dg;
+                b += db;
+            }
+            else if ((b1 & QOI_MASK_4) === QOI_DIFF_24) {
+                const b2 = bytes[p++];
+                const b3 = bytes[p++];
+                const dr = (((b1 & 0x0f) << 1) | (b2 >> 7)) - 16;
+                const dg =  ((b2 & 0x7c) >> 2) - 16;
+                const db = (((b2 & 0x03) << 3) | ((b3 & 0xe0) >> 5)) - 16;
+                const da =   (b3 & 0x1f) - 16;
+                writeDebug({
+                    type: 'DIFF_24',
+                    r: dr,
+                    g: dg,
+                    b: db,
+                    a: da,
+                });
+                r += dr;
+                g += dg;
+                b += db;
+                a += da;
+            }
+            else if ((b1 & QOI_MASK_4) === QOI_COLOR) {
+                const dbg: DebugColor = { type: 'COLOR' };
+                if (b1 & 8) { dbg.r = r = bytes[p++]; }
+                if (b1 & 4) { dbg.g = g = bytes[p++]; }
+                if (b1 & 2) { dbg.b = b = bytes[p++]; }
+                if (b1 & 1) { dbg.a = a = bytes[p++]; }
+                writeDebug(dbg);
+            }
+
+            const indexPos = ((r ^ g ^ b ^ a) % 64) * 4;
+            index[indexPos    ] = r;
+            index[indexPos + 1] = g;
+            index[indexPos + 2] = b;
+            index[indexPos + 3] = a;
+        }
+    }
+}
