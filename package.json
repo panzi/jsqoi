@@ -11,14 +11,12 @@
     "type": "module",
     "license": "MIT",
     "devDependencies": {
-        "@typescript-eslint/eslint-plugin": "^5.4.0",
-        "@typescript-eslint/parser": "^5.4.0",
-        "eslint": "^8.3.0",
-        "typescript": "^4.5.2"
-    },
-    "dependencies": {
         "@rgba-image/create-image": "^0.2.0",
         "@rgba-image/png": "^0.1.1",
-        "@types/node": "^16.11.11"
+        "@typescript-eslint/eslint-plugin": "^5.4.0",
+        "@typescript-eslint/parser": "^5.4.0",
+        "@types/node": "^16.11.11",
+        "eslint": "^8.3.0",
+        "typescript": "^4.5.2"
     }
 }
