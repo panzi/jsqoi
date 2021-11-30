@@ -186,7 +186,7 @@ export function encodeQOI(file: QOIFile): Uint8Array {
     bytes[12] = channels;
     bytes[13] = colorSpace;
 
-    const index = new Uint32Array(64);
+    const index = new Int32Array(64);
 
     let run = 0|0;
     let rPrev = 0|0;

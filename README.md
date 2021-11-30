@@ -48,7 +48,4 @@ Encode `ImageData` as a QOI file.
 TODO
 ----
 
-* **BUG:** Encoding images with alpha channels produce slightly different
-  output than the reference implementation for some reason. In the color
-  channels, not in the alpha channel!
 * npm release
