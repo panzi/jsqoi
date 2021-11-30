@@ -25,10 +25,6 @@ const QOI_MASK_4 = 0xf0; // 11110000
 const QOI_HEADER_SIZE = 14;
 const QOI_PADDING = 4;
 
-const QOI_DECODE_INDEX_INIT = new Uint8Array(4 * 64);
-
-const QOI_ENCODE_INDEX_INIT = new Uint32Array(QOI_DECODE_INDEX_INIT.buffer);
-
 export function decodeQOI(input: ArrayBuffer): QOIFile {
     const bytes = new Uint8Array(input);
 
@@ -67,7 +63,7 @@ export function decodeQOI(input: ArrayBuffer): QOIFile {
     const imageData = new ImageData(width, height);
     const pixels = imageData.data;
 
-    const index = new Uint8Array(QOI_DECODE_INDEX_INIT);
+    const index = new Uint8Array(4 * 64);
     if (channels === 3) {
         for (let indexPos = 3; indexPos < index.length; indexPos += 4) {
             index[indexPos] = 255;
@@ -190,7 +186,7 @@ export function encodeQOI(file: QOIFile): Uint8Array {
     bytes[12] = channels;
     bytes[13] = colorSpace;
 
-    const index = new Uint32Array(QOI_ENCODE_INDEX_INIT);
+    const index = new Uint32Array(64);
 
     let run = 0|0;
     let rPrev = 0|0;
@@ -313,7 +309,7 @@ export interface DebugHeader {
 
 export interface DebugIndex {
     type: 'INDEX';
-    pos: number;
+    index: number;
 }
 
 export interface DebugRun {
@@ -385,7 +381,7 @@ export function debugQOI(input: ArrayBuffer, debug: (item: DebugItem) => void = 
         throw new Error(`illegal color space: 0x${colorSpace.toString(16)}`);
     }
 
-    const index = new Uint8Array(QOI_DECODE_INDEX_INIT);
+    const index = new Uint8Array(4 * 64);
     if (channels === 3) {
         for (let indexPos = 3; indexPos < index.length; indexPos += 4) {
             index[indexPos] = 255;
@@ -407,7 +403,7 @@ export function debugQOI(input: ArrayBuffer, debug: (item: DebugItem) => void = 
     let a   = 255|0;
     let chunksLen = bytes.length - QOI_PADDING;
     let p = QOI_HEADER_SIZE;
-    const pxLen = width * height;
+    const pxLen = width * height * channels;
     // ImageData is always RGBA -> hardcoded 4
     for (let pxPos = 0; pxPos < pxLen; pxPos += 4) {
         if (run > 0) {
@@ -420,7 +416,7 @@ export function debugQOI(input: ArrayBuffer, debug: (item: DebugItem) => void = 
                 const indexPos = (b1 ^ QOI_INDEX) * 4;
                 writeDebug({
                     type: 'INDEX',
-                    pos: indexPos,
+                    index: indexPos,
                 });
                 r = index[indexPos];
                 g = index[indexPos + 1];
