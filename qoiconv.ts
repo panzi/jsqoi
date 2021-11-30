@@ -4,8 +4,8 @@ import { decodeQOI, encodeQOI } from "./index.js";
 import { readFileSync, writeFileSync } from 'fs';
 
 if (process.argv.length !== 4) {
-    console.log('usage: node dist/cli.js image.png image.qoi');
-    console.log('       node dist/cli.js image.qoi image.png');
+    console.log('usage: node dist/qoiconv.js image.png image.qoi');
+    console.log('       node dist/qoiconv.js image.qoi image.png');
     process.exit(1);
 }
 
